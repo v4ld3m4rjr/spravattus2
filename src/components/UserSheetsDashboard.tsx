@@ -6,7 +6,7 @@ import { supabase } from '@/src/integrations/supabase/client';
 import toast from 'react-hot-toast';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
-import { PlusCircle, ExternalLink } from 'lucide-react'; // Usando Lucide React para ícones
+import { PlusCircle, ExternalLink, Trash2, Loader2 } from 'lucide-react'; // Usando Lucide React para ícones
 
 interface UserSheet {
   id: string;
@@ -20,7 +20,8 @@ const UserSheetsDashboard = () => {
   const { session } = useSession();
   const [sheets, setSheets] = useState<UserSheet[]>([]);
   const [newSheetName, setNewSheetName] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingCreate, setIsLoadingCreate] = useState(false);
+  const [isLoadingDelete, setIsLoadingDelete] = useState<string | null>(null); // Armazena o ID da planilha sendo deletada
   const [isFetchingSheets, setIsFetchingSheets] = useState(true);
 
   const fetchUserSheets = async () => {
@@ -54,7 +55,7 @@ const UserSheetsDashboard = () => {
       return;
     }
 
-    setIsLoading(true);
+    setIsLoadingCreate(true);
     const loadingToastId = toast.loading('Criando planilha do Google Sheets...');
 
     try {
@@ -83,7 +84,45 @@ const UserSheetsDashboard = () => {
       toast.error(`Falha ao criar planilha: ${error.message}`, { id: loadingToastId });
       console.error("Error creating Google Sheet:", error);
     } finally {
-      setIsLoading(false);
+      setIsLoadingCreate(false);
+    }
+  };
+
+  const handleDeleteSheet = async (sheet: UserSheet) => {
+    if (!session?.access_token) {
+      toast.error('Você precisa estar logado para deletar uma planilha.');
+      return;
+    }
+
+    setIsLoadingDelete(sheet.id);
+    const loadingToastId = toast.loading(`Deletando planilha "${sheet.sheet_name}"...`);
+
+    try {
+      const response = await fetch(
+        `https://${supabase.supabaseUrl.split('.')[0]}.supabase.co/functions/v1/delete-google-sheet`,
+        {
+          method: 'POST', // Usamos POST para enviar o corpo da requisição com os IDs
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ sheetId: sheet.sheet_id, userSheetId: sheet.id }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro desconhecido ao deletar planilha.');
+      }
+
+      toast.success('Planilha deletada com sucesso!', { id: loadingToastId });
+      fetchUserSheets(); // Atualiza a lista de planilhas
+    } catch (error: any) {
+      toast.error(`Falha ao deletar planilha: ${error.message}`, { id: loadingToastId });
+      console.error("Error deleting Google Sheet:", error);
+    } finally {
+      setIsLoadingDelete(null);
     }
   };
 
@@ -100,11 +139,11 @@ const UserSheetsDashboard = () => {
             value={newSheetName}
             onChange={(e) => setNewSheetName(e.target.value)}
             className="flex-grow"
-            disabled={isLoading}
+            disabled={isLoadingCreate}
           />
-          <Button onClick={handleCreateSheet} disabled={isLoading}>
+          <Button onClick={handleCreateSheet} disabled={isLoadingCreate}>
             <PlusCircle className="mr-2 h-4 w-4" />
-            {isLoading ? 'Criando...' : 'Criar Planilha'}
+            {isLoadingCreate ? 'Criando...' : 'Criar Planilha'}
           </Button>
         </div>
       </div>
@@ -120,15 +159,29 @@ const UserSheetsDashboard = () => {
             {sheets.map((sheet) => (
               <li key={sheet.id} className="flex items-center justify-between p-3 border rounded-md bg-gray-50">
                 <span className="font-medium text-gray-700">{sheet.sheet_name}</span>
-                <a
-                  href={`https://docs.google.com/spreadsheets/d/${sheet.sheet_id}/edit`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline flex items-center"
-                >
-                  Abrir no Google Sheets
-                  <ExternalLink className="ml-2 h-4 w-4" />
-                </a>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`https://docs.google.com/spreadsheets/d/${sheet.sheet_id}/edit`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline flex items-center text-sm"
+                  >
+                    Abrir
+                    <ExternalLink className="ml-1 h-3 w-3" />
+                  </a>
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    onClick={() => handleDeleteSheet(sheet)} 
+                    disabled={isLoadingDelete === sheet.id}
+                  >
+                    {isLoadingDelete === sheet.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>
