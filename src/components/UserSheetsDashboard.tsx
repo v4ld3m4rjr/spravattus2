@@ -6,7 +6,9 @@ import { supabase } from '@/src/integrations/supabase/client';
 import toast from 'react-hot-toast';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
-import { PlusCircle, ExternalLink, Trash2, Loader2 } from 'lucide-react'; // Usando Lucide React para ícones
+import { PlusCircle, ExternalLink, Trash2, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card'; // Importa os componentes Card
+import { Skeleton } from '@/src/components/ui/skeleton'; // Importa o componente Skeleton
 
 interface UserSheet {
   id: string;
@@ -21,11 +23,14 @@ const UserSheetsDashboard = () => {
   const [sheets, setSheets] = useState<UserSheet[]>([]);
   const [newSheetName, setNewSheetName] = useState('');
   const [isLoadingCreate, setIsLoadingCreate] = useState(false);
-  const [isLoadingDelete, setIsLoadingDelete] = useState<string | null>(null); // Armazena o ID da planilha sendo deletada
+  const [isLoadingDelete, setIsLoadingDelete] = useState<string | null>(null);
   const [isFetchingSheets, setIsFetchingSheets] = useState(true);
 
   const fetchUserSheets = async () => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id) {
+      setIsFetchingSheets(false);
+      return;
+    }
     setIsFetchingSheets(true);
     const { data, error } = await supabase
       .from('user_sheets')
@@ -42,7 +47,12 @@ const UserSheetsDashboard = () => {
   };
 
   useEffect(() => {
-    fetchUserSheets();
+    if (session) { // Só busca as planilhas se houver uma sessão ativa
+      fetchUserSheets();
+    } else {
+      setSheets([]); // Limpa as planilhas se não houver sessão
+      setIsFetchingSheets(false);
+    }
   }, [session]);
 
   const handleCreateSheet = async () => {
@@ -79,7 +89,7 @@ const UserSheetsDashboard = () => {
 
       toast.success('Planilha criada e salva com sucesso!', { id: loadingToastId });
       setNewSheetName('');
-      fetchUserSheets(); // Atualiza a lista de planilhas
+      fetchUserSheets();
     } catch (error: any) {
       toast.error(`Falha ao criar planilha: ${error.message}`, { id: loadingToastId });
       console.error("Error creating Google Sheet:", error);
@@ -101,7 +111,7 @@ const UserSheetsDashboard = () => {
       const response = await fetch(
         `https://${supabase.supabaseUrl.split('.')[0]}.supabase.co/functions/v1/delete-google-sheet`,
         {
-          method: 'POST', // Usamos POST para enviar o corpo da requisição com os IDs
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`,
@@ -117,7 +127,7 @@ const UserSheetsDashboard = () => {
       }
 
       toast.success('Planilha deletada com sucesso!', { id: loadingToastId });
-      fetchUserSheets(); // Atualiza a lista de planilhas
+      fetchUserSheets();
     } catch (error: any) {
       toast.error(`Falha ao deletar planilha: ${error.message}`, { id: loadingToastId });
       console.error("Error deleting Google Sheet:", error);
@@ -130,63 +140,75 @@ const UserSheetsDashboard = () => {
     <div className="container mx-auto p-4">
       <h2 className="text-3xl font-bold mb-6 text-gray-800">Minhas Planilhas do Google</h2>
 
-      <div className="mb-8 p-6 bg-white rounded-lg shadow-md">
-        <h3 className="text-xl font-semibold mb-4">Criar Nova Planilha</h3>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Input
-            type="text"
-            placeholder="Nome da nova planilha"
-            value={newSheetName}
-            onChange={(e) => setNewSheetName(e.target.value)}
-            className="flex-grow"
-            disabled={isLoadingCreate}
-          />
-          <Button onClick={handleCreateSheet} disabled={isLoadingCreate}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            {isLoadingCreate ? 'Criando...' : 'Criar Planilha'}
-          </Button>
-        </div>
-      </div>
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Criar Nova Planilha</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Input
+              type="text"
+              placeholder="Nome da nova planilha"
+              value={newSheetName}
+              onChange={(e) => setNewSheetName(e.target.value)}
+              className="flex-grow"
+              disabled={isLoadingCreate}
+            />
+            <Button onClick={handleCreateSheet} disabled={isLoadingCreate}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              {isLoadingCreate ? 'Criando...' : 'Criar Planilha'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="p-6 bg-white rounded-lg shadow-md">
-        <h3 className="text-xl font-semibold mb-4">Planilhas Existentes</h3>
-        {isFetchingSheets ? (
-          <p className="text-gray-600">Carregando planilhas...</p>
-        ) : sheets.length === 0 ? (
-          <p className="text-gray-600">Você ainda não tem nenhuma planilha. Crie uma acima!</p>
-        ) : (
-          <ul className="space-y-4">
-            {sheets.map((sheet) => (
-              <li key={sheet.id} className="flex items-center justify-between p-3 border rounded-md bg-gray-50">
-                <span className="font-medium text-gray-700">{sheet.sheet_name}</span>
-                <div className="flex items-center gap-2">
-                  <a
-                    href={`https://docs.google.com/spreadsheets/d/${sheet.sheet_id}/edit`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline flex items-center text-sm"
-                  >
-                    Abrir
-                    <ExternalLink className="ml-1 h-3 w-3" />
-                  </a>
-                  <Button 
-                    variant="destructive" 
-                    size="sm" 
-                    onClick={() => handleDeleteSheet(sheet)} 
-                    disabled={isLoadingDelete === sheet.id}
-                  >
-                    {isLoadingDelete === sheet.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Planilhas Existentes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isFetchingSheets ? (
+            <div className="space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : sheets.length === 0 ? (
+            <p className="text-gray-600">Você ainda não tem nenhuma planilha. Crie uma acima!</p>
+          ) : (
+            <ul className="space-y-4">
+              {sheets.map((sheet) => (
+                <li key={sheet.id} className="flex items-center justify-between p-3 border rounded-md bg-gray-50">
+                  <span className="font-medium text-gray-700">{sheet.sheet_name}</span>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`https://docs.google.com/spreadsheets/d/${sheet.sheet_id}/edit`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline flex items-center text-sm"
+                    >
+                      Abrir
+                      <ExternalLink className="ml-1 h-3 w-3" />
+                    </a>
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      onClick={() => handleDeleteSheet(sheet)} 
+                      disabled={isLoadingDelete === sheet.id}
+                    >
+                      {isLoadingDelete === sheet.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
