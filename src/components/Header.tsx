@@ -38,6 +38,17 @@ const Header = () => {
           >
             Dashboard
           </NavLink>
+          <NavLink
+            to="/daily-response"
+            className={({ isActive }) =>
+              cn(
+                "text-primary-foreground hover:text-primary-foreground/80 transition-colors",
+                isActive && "font-semibold underline underline-offset-4"
+              )
+            }
+          >
+            Diário
+          </NavLink>
           {/* Adicione mais links de navegação aqui, se necessário */}
         </nav>
         <Button variant="ghost" onClick={handleLogout} className="flex items-center text-primary-foreground hover:bg-primary/80">

@@ -6,6 +6,7 @@ import { SessionContextProvider, useSession } from './components/SessionContextP
 // Importe suas páginas aqui
 import IndexPage from './pages/Index';
 import LoginPage from './pages/Login';
+import DailyResponsePage from './pages/DailyResponsePage'; // Importa a nova página
 
 // Componente de rota protegida
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -34,6 +35,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <IndexPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/daily-response"
+            element={
+              <ProtectedRoute>
+                <DailyResponsePage />
               </ProtectedRoute>
             }
           />
