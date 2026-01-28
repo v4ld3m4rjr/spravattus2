@@ -6,7 +6,7 @@ import { supabase } from '@/src/integrations/supabase/client';
 import { Button } from '@/src/components/ui/button';
 import { LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { cn } from '@/src/lib/utils'; // Importa a função cn para estilização condicional
+import { cn } from '@/src/lib/utils';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -48,6 +48,39 @@ const Header = () => {
             }
           >
             Diário
+          </NavLink>
+          <NavLink
+            to="/weekly-response"
+            className={({ isActive }) =>
+              cn(
+                "text-primary-foreground hover:text-primary-foreground/80 transition-colors",
+                isActive && "font-semibold underline underline-offset-4"
+              )
+            }
+          >
+            Semanal
+          </NavLink>
+          <NavLink
+            to="/monthly-response"
+            className={({ isActive }) =>
+              cn(
+                "text-primary-foreground hover:text-primary-foreground/80 transition-colors",
+                isActive && "font-semibold underline underline-offset-4"
+              )
+            }
+          >
+            Mensal
+          </NavLink>
+          <NavLink
+            to="/quarterly-response"
+            className={({ isActive }) =>
+              cn(
+                "text-primary-foreground hover:text-primary-foreground/80 transition-colors",
+                isActive && "font-semibold underline underline-offset-4"
+              )
+            }
+          >
+            Trimestral
           </NavLink>
           {/* Adicione mais links de navegação aqui, se necessário */}
         </nav>

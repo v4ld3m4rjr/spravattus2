@@ -6,7 +6,10 @@ import { SessionContextProvider, useSession } from './components/SessionContextP
 // Importe suas páginas aqui
 import IndexPage from './pages/Index';
 import LoginPage from './pages/Login';
-import DailyResponsePage from './pages/DailyResponsePage'; // Importa a nova página
+import DailyResponsePage from './pages/DailyResponsePage';
+import WeeklyResponsePage from './pages/WeeklyResponsePage'; // Importa a nova página
+import MonthlyResponsePage from './pages/MonthlyResponsePage'; // Importa a nova página
+import QuarterlyResponsePage from './pages/QuarterlyResponsePage'; // Importa a nova página
 
 // Componente de rota protegida
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -43,6 +46,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <DailyResponsePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/weekly-response"
+            element={
+              <ProtectedRoute>
+                <WeeklyResponsePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/monthly-response"
+            element={
+              <ProtectedRoute>
+                <MonthlyResponsePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quarterly-response"
+            element={
+              <ProtectedRoute>
+                <QuarterlyResponsePage />
               </ProtectedRoute>
             }
           />
